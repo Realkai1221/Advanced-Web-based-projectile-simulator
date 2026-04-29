@@ -1,0 +1,144 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Mini-Game — NEA Projectile Simulator</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .game-layout { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .scoreboard { display: flex; justify-content: center; align-items: center; gap: 2rem; padding: 0.5rem; background: #fff; border-bottom: 1px solid #ccc; }
+        .score-block { display: flex; align-items: center; gap: 0.5rem; }
+        .score-label { font-weight: 600; }
+        .score-value { font-size: 1.3rem; font-weight: 700; font-family: monospace; }
+        .p1-colour { color: #3498db; }
+        .p2-colour { color: #e94560; }
+        .round-info { text-align: center; }
+        #roundCounter { font-size: 0.75rem; color: #888; }
+        #turnIndicator { font-size: 0.95rem; font-weight: 700; }
+        .game-canvas-area { flex: 1; display: flex; justify-content: center; align-items: center; position: relative; }
+        #gameCanvas { border: 1px solid #ccc; display: block; }
+        .game-controls { display: flex; align-items: center; gap: 1rem; padding: 0.6rem 1rem; background: #fff; border-top: 1px solid #ccc; }
+        .aim-controls { display: flex; gap: 0.8rem; align-items: center; }
+        .aim-group { display: flex; flex-direction: column; gap: 0.2rem; min-width: 160px; }
+        .aim-group label { display: flex; justify-content: space-between; font-size: 0.8rem; color: #555; }
+        .aim-group label span { color: #222; font-weight: 600; }
+        .aim-group input[type="range"] { width: 100%; }
+        .action-buttons { display: flex; gap: 0.3rem; }
+        .btn-game-fire { padding: 0.5rem 1.2rem; border: none; background: #4a7ebf; color: #fff; font-size: 0.9rem; font-weight: 600; cursor: pointer; }
+        .btn-game-fire:disabled { opacity: 0.4; cursor: not-allowed; }
+        .btn-aim { padding: 0.4rem 0.6rem; border: 1px solid #ccc; background: #fff; color: #555; font-size: 0.8rem; cursor: pointer; }
+        .btn-aim:disabled { opacity: 0.3; cursor: not-allowed; }
+        .feedback-area { flex: 1; text-align: center; }
+        .feedback-text { font-size: 0.9rem; color: #555; min-height: 1.2rem; }
+        .feedback-text.hit { color: green; font-weight: 600; }
+        .feedback-text.miss { color: #555; }
+        .game-over-overlay { position: absolute; inset: 0; background: rgba(0,0,0,0.75); display: flex; flex-direction: column; justify-content: center; align-items: center; gap: 1rem; z-index: 10; }
+        .game-over-overlay h2 { font-size: 1.8rem; color: #fff; }
+        .game-over-overlay .final-score { font-size: 1.2rem; color: #ddd; }
+        .btn-new-game { padding: 0.6rem 1.5rem; border: none; background: #4a7ebf; color: #fff; font-size: 1rem; cursor: pointer; }
+        .game-info-bar { display: flex; justify-content: space-between; padding: 0.3rem 1rem; background: #eee; font-size: 0.8rem; font-family: monospace; }
+        .game-info-bar .info-distance strong { color: #4a7ebf; }
+        .leaderboard-section { padding: 0.8rem; background: #fff; border-top: 1px solid #ccc; max-height: 200px; overflow-y: auto; }
+        .leaderboard-title { font-size: 0.85rem; color: #555; margin-bottom: 0.4rem; text-align: center; }
+        .leaderboard-table { width: 100%; border-collapse: collapse; font-size: 0.8rem; }
+        .leaderboard-table th { color: #555; font-weight: 600; text-align: left; padding: 0.3rem; border-bottom: 1px solid #ccc; }
+        .leaderboard-table td { padding: 0.3rem; }
+        .leaderboard-table .rank-first td { color: #4a7ebf; font-weight: 600; }
+        .leaderboard-empty { text-align: center; color: #888; font-size: 0.85rem; }
+    </style>
+</head>
+<body>
+    <div class="game-layout">
+        <!-- Scoreboard -->
+        <div class="scoreboard">
+            <div class="score-block">
+                <span class="score-label p1-colour">P1</span>
+                <span id="p1Score" class="score-value p1-colour">0</span>
+            </div>
+            <div class="round-info">
+                <div id="roundCounter">Round 1</div>
+                <div id="turnIndicator">P1's Turn</div>
+            </div>
+            <div class="score-block">
+                <span id="p2Score" class="score-value p2-colour">0</span>
+                <span class="score-label p2-colour">P2</span>
+            </div>
+        </div>
+
+        <!-- Position + Distance info bar -->
+        <div id="gameInfoDisplay" class="game-info-bar"></div>
+
+        <!-- Canvas -->
+        <div class="game-canvas-area">
+            <canvas id="gameCanvas" width="900" height="500"></canvas>
+
+            <!-- Game Over Overlay -->
+            <div id="gameOverOverlay" class="game-over-overlay hidden">
+                <h2 id="winnerText">P1 Wins!</h2>
+                <div id="finalScore" class="final-score">3 - 1</div>
+                <button id="newGameBtn" class="btn-new-game">New Game</button>
+            </div>
+        </div>
+
+       
+        <div class="game-controls">
+            <div class="aim-controls">
+                <div class="aim-group">
+                    <label>Angle <span id="gameAngleValue">45°</span></label>
+                    <input type="range" id="gameAngle" min="5" max="85" step="1" value="45">
+                </div>
+                <div class="aim-group">
+                    <label>Velocity <span id="gameVelocityValue">30 m/s</span></label>
+                    <input type="range" id="gameVelocity" min="5" max="50" step="0.5" value="30">
+                </div>
+            </div>
+
+            <div class="action-buttons">
+                <button id="undoAimBtn" class="btn-aim">Undo</button>
+                <button id="redoAimBtn" class="btn-aim">Redo</button>
+                <button id="gameFireBtn" class="btn-game-fire">Fire</button>
+            </div>
+
+            <div class="feedback-area">
+                <div id="feedbackText" class="feedback-text"></div>
+            </div>
+        </div>
+
+        <!-- Leaderboard -->
+        <div id="leaderboardSection" class="leaderboard-section hidden"></div>
+    </div>
+
+    <!-- Physics engine -->
+    <script src="js/shared/physics/entity.js"></script>
+    <script src="js/shared/physics/physicsState.js"></script>
+    <script src="js/shared/physics/dragModels.js"></script>
+    <script src="js/shared/physics/trajectoryRecorder.js"></script>
+    <script src="js/shared/physics/projectile.js"></script>
+    <script src="js/shared/physics/target.js"></script>
+    <script src="js/shared/physics/obstacle.js"></script>
+    <script src="js/shared/physics/collisionResolver.js"></script>
+    <script src="js/shared/physics/simulationEnvironment.js"></script>
+
+    <!-- Data structures -->
+    <script src="js/shared/dataStructures/bst.js"></script>
+    <script src="js/shared/dataStructures/doublyLinkedList.js"></script>
+    <script src="js/shared/dataStructures/queue.js"></script>
+
+    <!-- Algorithms -->
+    <script src="js/shared/algorithms/mergeSort.js"></script>
+
+    <!-- API helper + nav -->
+    <script src="js/shared/api.js"></script>
+    <script src="js/shared/nav.js"></script>
+    <script>nav.init('game');</script>
+
+    <!-- Game -->
+    <script src="js/game/terrain.js"></script>
+    <script src="js/game/terrainBST.js"></script>
+    <script src="js/game/aimHistory.js"></script>
+    <script src="js/game/gameRenderer.js"></script>
+    <script src="js/game/leaderboard.js"></script>
+    <script src="js/game/gameController.js"></script>
+</body>
+</html>

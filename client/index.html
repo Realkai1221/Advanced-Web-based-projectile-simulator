@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>NEA Projectile Simulator</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .enrol-section {
+            margin-top: 1.5rem;
+            padding: 1rem;
+            background: #fff;
+            border: 1px solid #ccc;
+            text-align: left;
+            max-width: 400px;
+            margin-left: auto;
+            margin-right: auto;
+        }
+        .enrol-row { display: flex; gap: 0.5rem; margin-bottom: 0.5rem; }
+        .enrol-row input { flex: 1; padding: 0.4rem; border: 1px solid #ccc; font-size: 0.9rem; }
+        .enrolled-classes { margin-top: 1rem; }
+        .enrolled-class-item { padding: 0.4rem; background: #eee; margin-bottom: 0.3rem; font-size: 0.85rem; cursor: pointer; }
+        .class-assignments { margin-top: 0.8rem; border-top: 1px solid #ccc; padding-top: 0.6rem; }
+        .assignment-link { display: block; padding: 0.5rem; border: 1px solid #ccc; margin-bottom: 0.3rem; text-decoration: none; color: #222; }
+        .assignment-link-meta { font-size: 0.75rem; color: #555; }
+    </style>
+</head>
+<body>
+    <!-- Auth forms (shown when not logged in) -->
+    <div id="authSection" class="auth-container">
+        <h1>NEA Projectile Simulator</h1>
+
+        <div class="auth-tabs">
+            <button id="loginTab" class="tab active" onclick="showForm('login')">Login</button>
+            <button id="registerTab" class="tab" onclick="showForm('register')">Register</button>
+        </div>
+
+        <form id="loginForm" class="auth-form" onsubmit="handleLogin(event)">
+            <div class="form-group">
+                <label for="loginUsername">Username</label>
+                <input type="text" id="loginUsername" required autocomplete="username">
+            </div>
+            <div class="form-group">
+                <label for="loginPassword">Password</label>
+                <input type="password" id="loginPassword" required autocomplete="current-password">
+            </div>
+            <button type="submit" class="btn-primary">Login</button>
+            <p class="form-message" id="loginMessage"></p>
+        </form>
+
+        <form id="registerForm" class="auth-form hidden" onsubmit="handleRegister(event)">
+            <div class="form-group">
+                <label for="regUsername">Username</label>
+                <input type="text" id="regUsername" required autocomplete="username"
+                       oninput="validateInput(this, 'username')">
+                <span class="error-hint">3-20 characters, letters, numbers, underscores</span>
+            </div>
+            <div class="form-group">
+                <label for="regEmail">Email</label>
+                <input type="email" id="regEmail" required autocomplete="email"
+                       oninput="validateInput(this, 'email')">
+            </div>
+            <div class="form-group">
+                <label for="regPassword">Password</label>
+                <input type="password" id="regPassword" required autocomplete="new-password"
+                       oninput="validateInput(this, 'password')">
+                <span class="error-hint">At least 6 characters</span>
+            </div>
+            <div class="form-group">
+                <label>Role</label>
+                <div class="role-toggle">
+                    <button type="button" class="role-btn active" onclick="selectRole('student')">Student</button>
+                    <button type="button" class="role-btn" onclick="selectRole('teacher')">Teacher</button>
+                </div>
+            </div>
+            <button type="submit" class="btn-primary">Create Account</button>
+            <p class="form-message" id="registerMessage"></p>
+        </form>
+    </div>
+
+    <!-- Dashboard (shown after login) -->
+    <div id="dashboardSection" class="dashboard-container hidden">
+        <h1>NEA Projectile Simulator</h1>
+        <p class="welcome">Welcome, <strong id="dashUsername"></strong></p>
+        <div id="moduleGrid" class="module-grid"></div>
+
+        <!-- Student enrollment section (hidden for teachers) -->
+        <div id="enrolSection" class="enrol-section hidden">
+            <h2>Join a Class</h2>
+            <p style="font-size:0.8rem; color:var(--text-secondary); margin-bottom:0.6rem;">
+                Enter the class code from your teacher to access assignments.
+            </p>
+            <div class="enrol-row">
+                <input type="text" id="joinCodeInput" placeholder="e.g. PH2024" maxlength="6">
+                <button class="btn-primary" onclick="handleJoinClass()">Join</button>
+            </div>
+            <p id="enrolMessage" class="form-message"></p>
+            <div id="enrolledClasses" class="enrolled-classes"></div>
+        </div>
+
+        <button class="btn-primary" style="margin-top:1.5rem; padding:0.5rem 1.5rem; font-size:0.85rem;" onclick="handleLogout()">Logout</button>
+    </div>
+
+    <script src="js/shared/api.js"></script>
+    <script>
+        let selectedRole = 'student';
+
+        // without this the user would have to re-login every time they refresh the page even though their token is still valid in sessionStorage
+        document.addEventListener('DOMContentLoaded', () => {
+            if (api.isLoggedIn()) showDashboard();
+        });
+
+        function showForm(type) {
+            // I tried using css-only tabs at first but couldn't get the form switching to work properly, so I just toggle the hidden class manually
+            if (type === 'login') {
+                document.getElementById('loginForm').classList.remove('hidden');
+                document.getElementById('registerForm').classList.add('hidden');
+                document.getElementById('loginTab').classList.add('active');
+                document.getElementById('registerTab').classList.remove('active');
+            } else {
+                document.getElementById('loginForm').classList.add('hidden');
+                document.getElementById('registerForm').classList.remove('hidden');
+                document.getElementById('loginTab').classList.remove('active');
+                document.getElementById('registerTab').classList.add('active');
+            }
+            document.getElementById('loginMessage').textContent = '';
+            document.getElementById('registerMessage').textContent = '';
+        }
+
+        function selectRole(role) {
+            selectedRole = role;
+            var btns = document.querySelectorAll('.role-btn');
+            for (var i = 0; i < btns.length; i++) {
+                if (btns[i].textContent.toLowerCase() === role) {
+                    btns[i].classList.add('active');
+                } else {
+                    btns[i].classList.remove('active');
+                }
+            }
+        }
+
+        // this runs every time the user types a character in the register form so they can see if their username/email/password is valid before submitting
+        function validateInput(input, type) {
+            let valid = false;
+            if (type === 'username') valid = /^[A-Za-z0-9_]{3,20}$/.test(input.value);
+            else if (type === 'email') valid = /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(input.value);
+            else if (type === 'password') valid = input.value.length >= 6 && input.value.length <= 64;
+
+            if (input.value.length > 0 && !valid) {
+                input.classList.add('invalid');
+                input.classList.remove('valid');
+            } else if (valid) {
+                input.classList.add('valid');
+                input.classList.remove('invalid');
+            } else {
+                input.classList.remove('valid', 'invalid');
+            }
+        }
+
+        async function handleLogin(event) {
+            event.preventDefault();
+            var username = document.getElementById('loginUsername').value.trim();
+            var password = document.getElementById('loginPassword').value;
+
+            try {
+                var data = await api.post('/api/auth/login', { username, password });
+                // I need to save the username here too because the server only sends back token/userId/role but I want to display the username on the dashboard
+                sessionStorage.setItem('session', JSON.stringify({
+                    token: data.token, userId: data.userId, role: data.role, username
+                }));
+                api.setSession(data.token, data.userId, data.role);
+                document.getElementById('loginMessage').textContent = 'Login successful!';
+                document.getElementById('loginMessage').className = 'form-message success';
+                setTimeout(showDashboard, 400);
+            } catch (err) {
+                document.getElementById('loginMessage').textContent = err.message;
+                document.getElementById('loginMessage').className = 'form-message error';
+            }
+        }
+
+        async function handleRegister(event) {
+            event.preventDefault();
+            var username = document.getElementById('regUsername').value.trim();
+            var email = document.getElementById('regEmail').value.trim();
+            var password = document.getElementById('regPassword').value;
+            var msg = document.getElementById('registerMessage');
+
+            if (!/^[A-Za-z0-9_]{3,20}$/.test(username)) {
+                msg.textContent = 'Username: 3-20 chars, letters/numbers/underscores only';
+                msg.className = 'form-message error';
+                return;
+            }
+            if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
+                msg.textContent = 'Please enter a valid email address';
+                msg.className = 'form-message error';
+                return;
+            }
+            if (password.length < 6 || password.length > 64) {
+                msg.textContent = 'Password must be 6-64 characters';
+                msg.className = 'form-message error';
+                return;
+            }
+
+            try {
+                await api.post('/api/auth/register', {
+                    username, email, password, role: selectedRole
+                });
+                msg.textContent = 'Account created! You can now login.';
+                msg.className = 'form-message success';
+                // wait a bit so the user sees the success message before switching to login
+                setTimeout(function() { showForm('login'); }, 1500);
+            } catch (err) {
+                msg.textContent = err.message;
+                msg.className = 'form-message error';
+            }
+        }
+
+        function showDashboard() {
+            document.getElementById('authSection').classList.add('hidden');
+            document.getElementById('dashboardSection').classList.remove('hidden');
+
+            var session = JSON.parse(sessionStorage.getItem('session') || '{}');
+            document.getElementById('dashUsername').textContent = session.username || 'User';
+
+            var role = api.getRole();
+            var grid = document.getElementById('moduleGrid');
+
+            // only teachers should see the portal card, students just get lab + game
+            var html = '';
+            html += '<a href="lab.html" class="module-card">';
+            html += '<div class="module-title">Lab Mode</div>';
+            html += '<div class="module-desc">Launch projectiles, adjust physics, view graphs</div>';
+            html += '</a>';
+
+            html += '<a href="game.html" class="module-card">';
+            html += '<div class="module-title">Mini-Game</div>';
+            html += '<div class="module-desc">Two-player artillery over fractal terrain</div>';
+            html += '</a>';
+
+            if (role === 'teacher') {
+                html += '<a href="portal.html" class="module-card">';
+                html += '<div class="module-title">Teacher Portal</div>';
+                html += '<div class="module-desc">Manage classes, assignments, analytics</div>';
+                html += '</a>';
+            }
+            grid.innerHTML = html;
+
+            if (role === 'student') {
+                document.getElementById('enrolSection').classList.remove('hidden');
+                loadMyClasses();
+            }
+        }
+
+        async function handleJoinClass() {
+            var input = document.getElementById('joinCodeInput');
+            var msg = document.getElementById('enrolMessage');
+            var code = input.value.trim().toUpperCase();
+
+            if (!code || code.length < 4) {
+                msg.textContent = 'Please enter a valid class code';
+                msg.className = 'form-message error';
+                return;
+            }
+
+            try {
+                var result = await api.post('/api/classes/0/enrol', { joinCode: code });
+                msg.textContent = 'Joined "' + result.className + '" successfully!';
+                msg.className = 'form-message success';
+                input.value = '';
+                loadMyClasses();
+            } catch (err) {
+                msg.textContent = err.message;
+                msg.className = 'form-message error';
+            }
+        }
+
+        async function loadMyClasses() {
+            var container = document.getElementById('enrolledClasses');
+            try {
+                var classes = await api.get('/api/classes/enrolled');
+                if (classes.length === 0) {
+                    container.innerHTML = '<p style="font-size:0.8rem;color:#888;">No classes yet — enter a join code above.</p>';
+                    return;
+                }
+
+                var html = '<h3>My Classes</h3>';
+                for (var i = 0; i < classes.length; i++) {
+                    var c = classes[i];
+                    html += '<div class="enrolled-class-item" onclick="showAssignments(' + c.class_id + ',\'' + c.class_name + '\')">';
+                    html += '<span class="class-name">' + c.class_name + '</span>';
+                    html += '<span class="class-meta">' + (c.semester || '') + ' — click to view assignments</span>';
+                    html += '</div>';
+                }
+                html += '<div id="studentAssignments"></div>';
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '';
+            }
+        }
+
+        // called when student clicks on one of their classes above
+        async function showAssignments(classId, className) {
+            var container = document.getElementById('studentAssignments');
+            if (!container) return;
+
+            try {
+                var assignments = await api.get('/api/assignments/' + classId);
+                if (assignments.length === 0) {
+                    container.innerHTML = '<div class="class-assignments"><h3>' + className + '</h3><p style="color:#888;font-size:0.85rem;">No assignments yet.</p></div>';
+                    return;
+                }
+
+                var html = '<div class="class-assignments">';
+                html += '<h3>' + className + ' — Assignments</h3>';
+
+                for (var i = 0; i < assignments.length; i++) {
+                    var a = assignments[i];
+                    var locked = a.locked;
+                    var statusText = locked
+                        ? '<span style="color:red;font-size:0.75rem;">Locked (complete prerequisites first)</span>'
+                        : '<span style="color:green;font-size:0.75rem;">Available</span>';
+
+                    if (locked) {
+                        html += '<a class="assignment-link" style="opacity:0.5;pointer-events:none;">';
+                    } else {
+                        html += '<a href="lab.html?assignmentId=' + a.assignment_id + '" class="assignment-link">';
+                    }
+                    html += '<div class="assignment-link-name">' + a.name + ' ' + statusText + '</div>';
+                    html += '<div class="assignment-link-meta">';
+                    html += 'g=' + a.gravity + ' m/s² | drag=' + a.drag_model;
+                    html += ' | target=(' + a.target_x + ', ' + (a.target_y || 0) + ')m';
+                    html += ' | threshold=' + a.success_threshold + 'm';
+                    html += '</div></a>';
+                }
+                html += '</div>';
+                container.innerHTML = html;
+            } catch (err) {
+                container.innerHTML = '<p class="form-message error">' + err.message + '</p>';
+            }
+        }
+
+        async function handleLogout() {
+            try {
+                await api.post('/api/auth/logout', {});
+            } catch (e) {
+                // doesnt matter if this fails, we clear the local session anyway
+                console.log('logout request failed');
+            }
+            api.clearSession();
+            window.location.reload();
+        }
+    </script>
+</body>
+</html>

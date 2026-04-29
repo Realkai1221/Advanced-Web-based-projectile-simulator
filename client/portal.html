@@ -1,0 +1,143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Teacher Portal — NEA Projectile Simulator</title>
+    <link rel="stylesheet" href="css/styles.css">
+    <style>
+        .portal-layout { display: flex; flex-direction: column; height: 100vh; overflow: hidden; }
+        .portal-nav { display: flex; align-items: center; padding: 0 1rem; background: #fff; border-bottom: 1px solid #ccc; flex-shrink: 0; }
+        .nav-tabs { display: flex; flex: 1; }
+        .nav-tab { padding: 0.6rem 1rem; border: none; background: transparent; color: #555; font-size: 0.9rem; cursor: pointer; border-bottom: 2px solid transparent; }
+        .nav-tab.active { color: #222; border-bottom-color: #4a7ebf; }
+        .portal-content { flex: 1; overflow-y: auto; padding: 1.2rem; }
+        .portal-view { max-width: 900px; margin: 0 auto; }
+        .class-card { padding: 0.8rem; background: #fff; border: 1px solid #ccc; margin-bottom: 0.6rem; cursor: pointer; }
+        .class-card.selected { border-color: #4a7ebf; }
+        .class-card-header { display: flex; justify-content: space-between; align-items: center; }
+        .join-code { font-family: monospace; font-size: 0.85rem; padding: 0.1rem 0.4rem; background: #e8f0fe; color: #4a7ebf; }
+        .class-card-meta { font-size: 0.8rem; color: #555; margin-top: 0.2rem; }
+        .student-chips { display: flex; flex-wrap: wrap; gap: 0.3rem; margin-top: 0.4rem; }
+        .student-chip { font-size: 0.7rem; padding: 0.1rem 0.3rem; background: #eee; color: #555; }
+        .create-class-form { padding: 0.8rem; background: #fff; border: 1px solid #ccc; margin-top: 0.8rem; }
+        .create-class-form h3 { font-size: 0.9rem; color: #555; margin-bottom: 0.6rem; }
+        .form-row { display: flex; gap: 0.6rem; margin-bottom: 0.4rem; }
+        .form-row .form-group { flex: 1; }
+        .form-group { margin-bottom: 0.4rem; }
+        .form-group label { display: block; font-size: 0.8rem; color: #555; margin-bottom: 0.2rem; }
+        .form-group input, .form-group select { width: 100%; padding: 0.4rem; border: 1px solid #ccc; font-size: 0.85rem; }
+        .assignments-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+        .assignment-row { padding: 0.6rem; background: #fff; border: 1px solid #ccc; margin-bottom: 0.4rem; cursor: pointer; }
+        .assignment-name { font-weight: 500; }
+        .assignment-meta { font-size: 0.75rem; color: #555; margin-top: 0.2rem; }
+        .prereq-section { margin-top: 1rem; }
+        .prereq-section h3 { font-size: 0.9rem; color: #555; margin-bottom: 0.4rem; }
+        #prereqCanvas { border: 1px solid #ccc; display: block; width: 100%; }
+        .editor-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 360px; background: #fff; border-left: 1px solid #ccc; padding: 1.2rem; overflow-y: auto; z-index: 20; }
+        .editor-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+        .editor-actions { display: flex; gap: 0.3rem; }
+        .editor-buttons { display: flex; gap: 0.4rem; margin-top: 0.8rem; }
+        .editor-buttons button { flex: 1; }
+        .prereq-list { display: flex; flex-direction: column; gap: 0.2rem; }
+        .prereq-checkbox { display: flex; align-items: center; gap: 0.3rem; font-size: 0.85rem; cursor: pointer; }
+        .stat-cards { display: flex; gap: 0.8rem; margin-bottom: 1rem; }
+        .stat-card { flex: 1; padding: 0.8rem; background: #fff; border: 1px solid #ccc; text-align: center; }
+        .stat-card.flagged { border-color: red; }
+        .stat-value { font-size: 1.4rem; font-weight: 700; }
+        .stat-label { font-size: 0.75rem; color: #555; }
+        .chart-section, .table-section { margin-bottom: 1rem; }
+        .chart-section h3, .table-section h3 { font-size: 0.9rem; color: #555; margin-bottom: 0.4rem; }
+        .chart-wrap { height: 240px; border: 1px solid #ccc; padding: 0.4rem; }
+        .portal-table { width: 100%; border-collapse: collapse; font-size: 0.85rem; }
+        .portal-table th { text-align: left; padding: 0.4rem; color: #555; border-bottom: 1px solid #ccc; font-weight: 600; }
+        .portal-table td { padding: 0.4rem; border-bottom: 1px solid #eee; }
+        .portal-table tr { cursor: pointer; }
+        .flagged-row td { color: red; }
+        .flag-badge, .ok-badge, .pending-badge, .complete-badge { font-size: 0.7rem; padding: 0.1rem 0.3rem; }
+        .flag-badge { background: #fdd; color: red; }
+        .ok-badge { background: #dfd; color: green; }
+        .complete-badge { background: #cfc; color: green; font-weight: 600; }
+        .pending-badge { background: #eee; color: #888; }
+        .detail-panel { position: fixed; right: 0; top: 0; bottom: 0; width: 420px; background: #fff; border-left: 1px solid #ccc; padding: 1.2rem; overflow-y: auto; z-index: 20; }
+        .detail-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 0.8rem; }
+        .detail-stats { display: flex; gap: 1rem; font-size: 0.85rem; color: #555; margin-bottom: 0.8rem; }
+        .btn-primary { padding: 0.4rem 0.8rem; border: none; background: #4a7ebf; color: #fff; font-size: 0.85rem; cursor: pointer; }
+        .btn-aim { padding: 0.3rem 0.5rem; border: 1px solid #ccc; background: #fff; color: #555; font-size: 0.8rem; cursor: pointer; }
+        .btn-aim:disabled { opacity: 0.3; cursor: not-allowed; }
+        .btn-reset { padding: 0.4rem 0.8rem; border: 1px solid #ccc; background: #fff; color: #555; font-size: 0.85rem; cursor: pointer; }
+    </style>
+</head>
+<body>
+    <div class="portal-layout">
+        <!-- Portal sub-nav (internal tabs) -->
+        <div class="portal-nav">
+            <div class="nav-tabs">
+                <button class="nav-tab active" data-view="classes">Classes</button>
+                <button class="nav-tab" data-view="assignments">Assignments</button>
+                <button class="nav-tab" data-view="analytics">Analytics</button>
+            </div>
+        </div>
+
+        <!-- Main Content -->
+        <div class="portal-content">
+
+            <!-- Classes View -->
+            <div id="classesView" class="portal-view">
+                <div id="classList"></div>
+                <div class="create-class-form">
+                    <h3>Create New Class</h3>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>Class Name</label>
+                            <input type="text" id="newClassName" placeholder="e.g. Year 12 Physics">
+                        </div>
+                        <div class="form-group">
+                            <label>Semester</label>
+                            <input type="text" id="newClassSemester" placeholder="e.g. Autumn 2025">
+                        </div>
+                    </div>
+                    <button class="btn-primary" onclick="portal._createClass()">Create Class</button>
+                    <p id="createClassMessage" class="form-message"></p>
+                </div>
+            </div>
+
+            <!-- Assignments View -->
+            <div id="assignmentsView" class="portal-view hidden">
+                <div id="assignmentsList"></div>
+                <div class="prereq-section">
+                    <h3>Prerequisite Graph</h3>
+                    <canvas id="prereqCanvas" width="800" height="200"></canvas>
+                </div>
+            </div>
+
+            <!-- Analytics View -->
+            <div id="analyticsView" class="portal-view hidden">
+                <div id="analyticsContainer">
+                    <p class="form-message">Select a class in the Classes tab first.</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Slide-out panels -->
+        <div id="assignmentEditorPanel" class="editor-panel hidden"></div>
+        <div id="studentDetailPanel" class="detail-panel hidden"></div>
+    </div>
+
+    <!-- CDN -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <!-- Shared -->
+    <script src="js/shared/api.js"></script>
+    <script src="js/shared/nav.js"></script>
+    <script>nav.init('portal');</script>
+    <script src="js/shared/dataStructures/stack.js"></script>
+    <script src="js/shared/dataStructures/graph.js"></script>
+
+    <!-- Portal -->
+    <script src="js/portal/assignmentEditor.js"></script>
+    <script src="js/portal/prereqGraph.js"></script>
+    <script src="js/portal/analytics.js"></script>
+    <script src="js/portal/portalController.js"></script>
+</body>
+</html>
