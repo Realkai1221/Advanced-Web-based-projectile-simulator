@@ -1,0 +1,217 @@
+/* Basic reset */
+*, *::before, *::after {
+    box-sizing: border-box;
+    margin: 0;
+    padding: 0;
+}
+
+body {
+    font-family: system-ui, sans-serif;
+    background: #f5f5f5;
+    color: #222;
+    min-height: 100vh;
+}
+
+/* Auth page */
+.auth-container {
+    max-width: 400px;
+    margin: 60px auto;
+    padding: 1.5rem;
+    background: #fff;
+    border: 1px solid #ccc;
+}
+
+.auth-container h1 {
+    text-align: center;
+    margin-bottom: 1rem;
+}
+
+.auth-tabs {
+    display: flex;
+    margin-bottom: 1rem;
+}
+
+.tab {
+    flex: 1;
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    background: #eee;
+    color: #555;
+    cursor: pointer;
+    font-size: 0.9rem;
+}
+
+.tab.active {
+    background: #4a7ebf;
+    color: #fff;
+}
+
+.auth-form {
+    display: flex;
+    flex-direction: column;
+    gap: 0.8rem;
+}
+
+.hidden { display: none !important; }
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+}
+
+.form-group label {
+    font-size: 0.85rem;
+    color: #555;
+}
+
+.form-group input, .form-group select {
+    padding: 0.5rem;
+    border: 1px solid #ccc;
+    font-size: 0.9rem;
+}
+
+.form-group input.valid { border-color: green; }
+.form-group input.invalid { border-color: red; }
+
+.error-hint {
+    font-size: 0.75rem;
+    color: #888;
+}
+
+.role-toggle {
+    display: flex;
+}
+
+.role-btn {
+    flex: 1;
+    padding: 0.4rem;
+    border: 1px solid #ccc;
+    background: #eee;
+    color: #555;
+    cursor: pointer;
+}
+
+.role-btn.active {
+    background: #d0d8e8;
+    color: #222;
+    font-weight: 600;
+}
+
+.btn-primary {
+    padding: 0.6rem;
+    border: none;
+    background: #4a7ebf;
+    color: #fff;
+    font-size: 0.95rem;
+    cursor: pointer;
+    margin-top: 0.3rem;
+}
+
+.btn-primary:hover { background: #3a6ea0; }
+
+.form-message {
+    text-align: center;
+    font-size: 0.85rem;
+    min-height: 1.2rem;
+}
+
+.form-message.error { color: red; }
+.form-message.success { color: green; }
+
+/* Nav bar */
+.site-nav {
+    display: flex;
+    align-items: center;
+    padding: 0.4rem 1rem;
+    background: #fff;
+    border-bottom: 1px solid #ccc;
+    gap: 0.5rem;
+}
+
+.site-nav .nav-brand {
+    font-weight: 700;
+    font-size: 0.85rem;
+    color: #222;
+    text-decoration: none;
+    margin-right: 1rem;
+}
+
+.site-nav .nav-links {
+    display: flex;
+    gap: 0;
+    flex: 1;
+}
+
+.site-nav .nav-link {
+    padding: 0.4rem 0.8rem;
+    color: #555;
+    text-decoration: none;
+    font-size: 0.82rem;
+    border-bottom: 2px solid transparent;
+}
+
+.site-nav .nav-link.active {
+    color: #222;
+    border-bottom-color: #4a7ebf;
+}
+
+.site-nav .nav-spacer { flex: 1; }
+
+.site-nav .nav-user {
+    font-size: 0.8rem;
+    color: #888;
+}
+
+.site-nav .nav-logout {
+    padding: 0.2rem 0.5rem;
+    border: 1px solid #ccc;
+    background: #fff;
+    color: #555;
+    font-size: 0.75rem;
+    cursor: pointer;
+}
+
+/* Dashboard */
+.dashboard-container {
+    max-width: 550px;
+    margin: 50px auto;
+    padding: 1.5rem;
+    text-align: center;
+}
+
+.dashboard-container h1 {
+    margin-bottom: 0.5rem;
+}
+
+.dashboard-container .welcome {
+    color: #555;
+    margin-bottom: 1.5rem;
+}
+
+.module-grid {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+}
+
+.module-card {
+    width: 160px;
+    padding: 1.2rem 0.8rem;
+    background: #fff;
+    border: 1px solid #ccc;
+    text-decoration: none;
+    color: #222;
+    cursor: pointer;
+}
+
+.module-card .module-title {
+    font-weight: 600;
+    margin-bottom: 0.3rem;
+}
+
+.module-card .module-desc {
+    font-size: 0.75rem;
+    color: #555;
+}
